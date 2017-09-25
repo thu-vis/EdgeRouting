@@ -739,10 +739,13 @@
 			this.pathes.push(newPath);
 			this.addPoint(from);
 			this.addPoint(to);
+			from['belong'] = 'path';
+			to['belong'] = 'path';
 		}
 		_addPolygon(points) {
 			for (let point of points) {
 				this.addPoint(point);
+				point['belong'] = 'polygon';
 			}
 			this.polygons.push(points);
 		}
@@ -765,6 +768,18 @@
 
 					let segment = new Segment(p1, p2);
 					let flag = this.polygons.some(function(polygon) {
+						if(p1['belong'] === 'path') {
+							let tmp = point_and_polygon(p1, polygon);
+							if(tmp !== 'outside') {
+								return false;
+							}
+						}
+						if(p2['belong'] === 'path') {
+							let tmp = point_and_polygon(p2, polygon);
+							if(tmp !== 'outside') {
+								return false;
+							}
+						}
 						let relation = segment_and_polygon(segment, polygon);
 						return (relation === "inside" || relation === "cross");
 					});
@@ -779,7 +794,13 @@
 		polylinePath(path, real = true) {
 			var from = path.from,
 				to = path.to;
-			var result = this.dijkstra(from, to)['path'];
+			var result = this.dijkstra(from, to);
+
+			if (result !== null) {
+				result = result['path'];
+			} else {
+				return [from, to];
+			}
 			if (real) {
 				for (let point of result) {
 					if (!point['through']) {
