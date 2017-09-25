@@ -1,6 +1,6 @@
 (function() {
 	const infSmall = 1e-2;
-	const visbilitySmall = 1e-2;
+	const visbilitySmall = 1;
 
 	var less_than = (x, y) => x + infSmall < y;
 	var equal = (x, y) => Math.abs(x - y) <= infSmall;
@@ -245,11 +245,17 @@
 	function segments_intersection_point(AB, CD) {
 		var ab = AB.toVector();
 		var cd = CD.toVector();
-		if(equal(ab.cross(cd), 0)) {
+		if (equal(ab.cross(cd), 0)) {
 			return null;
 		}
-		var x1 = AB.from.x, x2 = AB.to.x, x3 = CD.from.x, x4 = CD.to.x;
-		var y1 = AB.from.y, y2 = AB.to.y, y3 = CD.from.y, y4 = CD.to.y;
+		var x1 = AB.from.x,
+			x2 = AB.to.x,
+			x3 = CD.from.x,
+			x4 = CD.to.x;
+		var y1 = AB.from.y,
+			y2 = AB.to.y,
+			y3 = CD.from.y,
+			y4 = CD.to.y;
 
 		var b1 = (y2 - y1) * x1 + (x1 - x2) * y1;
 		var b2 = (y4 - y3) * x3 + (x3 - x4) * y3;
@@ -257,7 +263,7 @@
 		var d1 = b2 * (x2 - x1) - b1 * (x4 - x3);
 		var d2 = b2 * (y2 - y1) - b1 * (y4 - y3);
 
-		return new Vector(d1/d, d2/d);
+		return new Vector(d1 / d, d2 / d);
 	}
 
 	function segment_and_triangle(segment, vertex) {
@@ -421,13 +427,13 @@
 		return 'outside';*/
 		var pointSum = vertex.length;
 		var intersections = [];
-		for(let i = 0; i < pointSum; i++) {
+		for (let i = 0; i < pointSum; i++) {
 			let p1 = vertex[i];
 			let p2 = vertex[(i + 1) % pointSum];
 			let seg = new Segment(p1, p2);
 
 			let p0 = segments_intersection_point(seg, segment);
-			if(p0 !== null) {
+			if (p0 !== null) {
 				intersections.push(p0);
 			}
 		}
@@ -440,9 +446,10 @@
 		}
 
 		intersections.sort(cmp);
-		let hasInside = false, hasOutside = false;
+		let hasInside = false,
+			hasOutside = false;
 
-		for(let i = 0; i < intersections.length - 1; i++) {
+		for (let i = 0; i < intersections.length - 1; i++) {
 			let p1 = intersections[i];
 			let p2 = intersections[i + 1];
 			let p0 = new Vector((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
@@ -724,7 +731,12 @@
 			this.polygons = [];
 		}
 		_addPath(from, to) {
-			this.pathes.push([from, to]);
+			var newPath = {
+				'from': from,
+				'to': to,
+				'through': [],
+			}
+			this.pathes.push(newPath);
 			this.addPoint(from);
 			this.addPoint(to);
 		}
@@ -764,12 +776,52 @@
 				}
 			}
 		}
-		polylinePath(from, to) {
-			return this.dijkstra(from, to)['path'];
+		polylinePath(path, real = true) {
+			var from = path.from,
+				to = path.to;
+			var result = this.dijkstra(from, to)['path'];
+			if (real) {
+				for (let point of result) {
+					if (!point['through']) {
+						point['through'] = [path];
+					} else {
+						point['through'].push(path);
+					}
+				}
+			}
+			var epsilon = 10;
+
+			for (let i = 1; i < result.length - 1; i++) {
+				if (result[i]['through'].length <= 1)
+					continue;
+				for (let polygon of this.polygons) {
+					let index = polygon.indexOf(result[i]);
+					if (index > -1) {
+						let p0 = result[i];
+						let p1 = polygon[(index + 1) % polygon.length];
+						let p2 = polygon[(index - 1 + polygon.length) % polygon.length];
+
+						let v1 = p1.sub(p0);
+						let v2 = p2.sub(p0);
+						let bi = bisector_between(v1, v2);
+						let tmp = p0.add(bi);
+
+						let relation = point_and_polygon(tmp, polygon);
+						bi = (relation === "outside") ? bi : bi.reverse();
+
+						let nScale = Math.min(result[i]['through'].length - 1, 4);
+						let adjust = p0.add(bi.scale(epsilon * nScale));
+
+						result.splice(i, 1, adjust);
+						break;
+					}
+				}
+			}
+			return result;
 		}
 
-		curvePath(from, to) {
-			var polylinePath = this.polylinePath(from, to);
+		curvePath(path) {
+			var polylinePath = this.polylinePath(path, false);
 			var curves = route_spline(this.polygons, new Polyline(polylinePath));
 			return curves;
 		}

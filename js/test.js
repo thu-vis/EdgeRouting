@@ -5,6 +5,10 @@ var pathes = [
 		[20, 50],
 		[300, 100]
 	],
+	[
+		[20, 60],
+		[300, 90],
+	],
 ];
 var obstacles = [
 	[
@@ -80,10 +84,10 @@ function redraw() {
 		});
 	};
 	layout.build();
-	console.log(layout);
+	//console.log(layout);
 	for (let path of layout.pathes) {
-		let result = layout.polylinePath(path[0], path[1]);
-		console.log(result);
+		let result = layout.polylinePath(path);
+		console.log("poly", result);
 
 		let pathString = "M" + result[0].toString();
 		for (let i = 1; i < result.length; i++) {
@@ -94,7 +98,8 @@ function redraw() {
 			.style("stroke", "red")
 			.style("fill", "none");
 
-		let curves = layout.curvePath(path[0], path[1]);
+		let curves = layout.curvePath(path);
+		console.log("cur", curves);
 		var curveString = "M" + curves[0].from.toString();
 		for (let i = 0; i < curves.length; i++) {
 			curveString += (" C" + curves[i].toString());
