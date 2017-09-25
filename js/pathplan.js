@@ -242,6 +242,24 @@
 		}
 	}
 
+	function segments_intersection_point(AB, CD) {
+		var ab = AB.toVector();
+		var cd = CD.toVector();
+		if(equal(ab.cross(cd), 0)) {
+			return null;
+		}
+		var x1 = AB.from.x, x2 = AB.to.x, x3 = CD.from.x, x4 = CD.to.x;
+		var y1 = AB.from.y, y2 = AB.to.y, y3 = CD.from.y, y4 = CD.to.y;
+
+		var b1 = (y2 - y1) * x1 + (x1 - x2) * y1;
+		var b2 = (y4 - y3) * x3 + (x3 - x4) * y3;
+		var d = (x2 - x1) * (y4 - y3) - (x4 - x3) * (y2 - y1);
+		var d1 = b2 * (x2 - x1) - b1 * (x4 - x3);
+		var d2 = b2 * (y2 - y1) - b1 * (y4 - y3);
+
+		return new Vector(d1/d, d2/d);
+	}
+
 	function segment_and_triangle(segment, vertex) {
 		var edges = [
 			new Segment(vertex[0], vertex[1]),
@@ -365,7 +383,7 @@
 	}
 	// naive version. only works for convex polygons.
 	function segment_and_polygon(segment, vertex) {
-		
+		/*
 		var hasColinear = false;
 		var pointSum = vertex.length;
 		for (let i = 0; i < pointSum; i++) {
@@ -400,7 +418,40 @@
 				return 'inside';
 			}
 		}
-		return 'outside';
+		return 'outside';*/
+		var pointSum = vertex.length;
+		var intersections = [];
+		for(let i = 0; i < pointSum; i++) {
+			let p1 = vertex[i];
+			let p2 = vertex[(i + 1) % pointSum];
+			let seg = new Segment(p1, p2);
+
+			let p0 = segments_intersection_point(seg, segment);
+			if(p0 !== null) {
+				intersections.push(p0);
+			}
+		}
+		intersections.push(segment.from);
+		intersections.push(segment.to);
+
+		function cmp(a, b) {
+			var tmp = a.x - b.x;
+			return equal(tmp, 0) ? a.y - b.y : a.x - b.x;
+		}
+
+		intersections.sort(cmp);
+		let hasInside = false, hasOutside = false;
+
+		for(let i = 0; i < intersections.length - 1; i++) {
+			let p1 = intersections[i];
+			let p2 = intersections[i + 1];
+			let p0 = new Vector((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+
+			let relation = point_and_polygon(p0, vertex);
+			hasInside = hasInside || (relation === "inside");
+			hasOutside = hasOutside || (relation === "outside");
+		}
+		return hasInside ? (hasOutside ? "cross" : "inside") : "outside";
 	}
 
 	function curve_and_polygon(curve, vertex) {
