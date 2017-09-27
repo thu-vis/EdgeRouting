@@ -74,21 +74,22 @@ function redraw() {
 
 	let layout = WJL.createLayout();
 
-	for (let polygon of obstacles) {
-		layout.addPolygon(polygon);
+	for (let i = 0; i < obstacles.length; i++) {
+		layout.addPolygonObstacle(obstacles[i], i.toString());
 	}
-	for (let path of pathes) {
-		layout.addPath({
-			'from': [path[0][0], path[0][1]],
-			'to': [path[1][0], path[1][1]],
-		});
+	for (let i = 0; i < pathes.length; i++) {
+		let path = pathes[i];
+		layout.addPathEndpoint([path[0][0], path[0][1]], (2 * i).toString());
+		layout.addPathEndpoint([path[1][0], path[1][1]], (2 * i + 1).toString());
+		layout.addPath((2 * i).toString(), (2 * i + 1).toString(), i.toString());
 	};
 	layout.build();
-	//console.log(layout);
-	for (let path of layout.pathes) {
-		let result = layout.polylinePath(path);
-		console.log("poly", result);
-
+	console.log(layout);
+	//return;
+	for (let i = 0; i < pathes.length; i++) {
+		let result = layout.polylinePath(i.toString());
+		//console.log("poly", result);
+		//break;
 		let pathString = "M" + result[0].toString();
 		for (let i = 1; i < result.length; i++) {
 			pathString += (" L" + result[i].toString());
@@ -98,7 +99,7 @@ function redraw() {
 			.style("stroke", "red")
 			.style("fill", "none");
 
-		let curves = layout.curvePath(path);
+		let curves = layout.curvePath(i.toString());
 		console.log("cur", curves);
 		var curveString = "M" + curves[0].from.toString();
 		for (let i = 0; i < curves.length; i++) {

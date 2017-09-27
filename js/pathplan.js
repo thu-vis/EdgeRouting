@@ -729,18 +729,20 @@
 			super();
 			this.pathes = [];
 			this.polygons = [];
+			this.endpointMap = new Map();
+			this.polygonMap = new Map();
+			this.pathMap = new Map();
 		}
 		_addPath(from, to) {
 			var newPath = {
 				'from': from,
 				'to': to,
-				'through': [],
+				//'through': [],
 			}
 			this.pathes.push(newPath);
-			this.addPoint(from);
-			this.addPoint(to);
 			from['belong'] = 'path';
 			to['belong'] = 'path';
+			return newPath;
 		}
 		_addPolygon(points) {
 			for (let point of points) {
@@ -749,16 +751,38 @@
 			}
 			this.polygons.push(points);
 		}
-		addPath(path) {
-			this._addPath(new Vector(path['from'][0], path['from'][1]),
-				new Vector(path['to'][0], path['to'][1]));
+		addPathEndpoint(coord, id) {
+			if(id === undefined) {
+				throw new TypeError("must have an id");
+			}
+
+			var newPoint = new Vector(coord[0], coord[1]);
+			this.addPoint(newPoint);
+			this.endpointMap.set(id, newPoint);
 		}
-		addPolygon(coords) {
+		addPath(start, end, id) {
+			if(id === undefined) {
+				throw new TypeError("must have an id");
+			}
+
+			var p1 = this.endpointMap.get(start);
+			var p2 = this.endpointMap.get(end);
+			var path = this._addPath(p1, p2);
+
+			this.pathMap.set(id, path);
+		}
+		addPolygonObstacle(coords, id) {
+			if(id === undefined) {
+				throw new TypeError("must have an id");
+			}
+
 			var points = [];
-			for (let coord of coords) {
+			for(let coord of coords) {
 				points.push(new Vector(coord[0], coord[1]));
 			}
+
 			this._addPolygon(points);
+			this.polygonMap.set(id, points);
 		}
 		build() {
 			for (let i = 0; i < this.points.length; i++) {
@@ -791,7 +815,8 @@
 				}
 			}
 		}
-		polylinePath(path, real = true) {
+		polylinePath(id, real = true) {
+			var path = this.pathMap.get(id);
 			var from = path.from,
 				to = path.to;
 			var result = this.dijkstra(from, to);
@@ -841,8 +866,9 @@
 			return result;
 		}
 
-		curvePath(path) {
-			var polylinePath = this.polylinePath(path, false);
+		curvePath(id) {
+			//var path = this.pathMap.get(id);
+			var polylinePath = this.polylinePath(id, false);
 			var curves = route_spline(this.polygons, new Polyline(polylinePath));
 			return curves;
 		}
