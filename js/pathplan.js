@@ -243,9 +243,9 @@
 	}
 
 	function segments_intersection_point(AB, CD) {
-		var ab = AB.toVector();
-		var cd = CD.toVector();
-		if (equal(ab.cross(cd), 0)) {
+		let relation = segments_relationship(AB, CD);
+		if(relation !== "intersected_on_endpoint" 
+			&& relation !== "proper_intersected") {
 			return null;
 		}
 		var x1 = AB.from.x,
@@ -468,7 +468,7 @@
 			}
 		}
 
-		var nDivision = 20;
+		var nDivision = 50;
 		var hasInside = false,
 			hasOutside = false;
 		for (let i = 0; i < nDivision; i++) {
@@ -785,6 +785,10 @@
 			this.polygonMap.set(id, points);
 		}
 		build() {
+			this.edges = [];
+			for(let point of this.points) {
+				point.head = undefined;
+			}
 			for (let i = 0; i < this.points.length; i++) {
 				let p1 = this.points[i];
 				for (let j = i + 1; j < this.points.length; j++) {

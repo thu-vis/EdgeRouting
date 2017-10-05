@@ -36,10 +36,47 @@ var obstacles = [
 		[90, 60],
 	]
 ];
+
+let layout = WJL.createLayout();
+
 var upperSvg = d3.select("#original");
 var lowerSvg = d3.select("#routing");
 
+var dragHandler = (function(){
+	var x = 0.0, y = 0.0;
+	var dx = 0.0, dy = 0.0;
+	var drag = function(d){
+		x = d3.mouse(this)[0];
+		y = d3.mouse(this)[1];
+		dx += d3.event.dx;
+		dy += d3.event.dy;
+	};
+	var dragEnd = function(d) {
+		//console.log("end!", d3.event.x, d3.event.y, dx, dy);
+		var result = (dx**2 + dy**2 >= 100);
+		if(result) {
+			var removedPathes = d3.selectAll("path");
+			removedPathes.remove();
+			obstacles.push([[x-dx,y-dy],[x,y-dy],[x,y],[x-dx,y]]);
+			redraw();
+		}
+		dx = 0.0, dy = 0.0;
+		x = 0.0, y = 0.0;
+		return result;
+	}
+	return {
+		"drag" : drag,
+		"dragend": dragEnd,
+	};
+})();
+
+var dragBehavior = d3.behavior.drag()
+					 .on("drag", dragHandler["drag"])
+					 .on("dragend", dragHandler["dragend"]);
+upperSvg.call(dragBehavior);
+
 function redraw() {
+	//console.log(obstacles);
 	for (let polygon of obstacles) {
 		let pathString = "M ";
 		for (let vertex of polygon) {
@@ -72,8 +109,6 @@ function redraw() {
 		lowerSvg.append("circle").attr(attrTo);
 	}
 
-	let layout = WJL.createLayout();
-
 	for (let i = 0; i < obstacles.length; i++) {
 		layout.addPolygonObstacle(obstacles[i], i.toString());
 	}
@@ -84,12 +119,8 @@ function redraw() {
 		layout.addPath((2 * i).toString(), (2 * i + 1).toString(), i.toString());
 	};
 	layout.build();
-	console.log(layout);
-	//return;
 	for (let i = 0; i < pathes.length; i++) {
 		let result = layout.polylinePath(i.toString());
-		//console.log("poly", result);
-		//break;
 		let pathString = "M" + result[0].toString();
 		for (let i = 1; i < result.length; i++) {
 			pathString += (" L" + result[i].toString());
@@ -100,7 +131,7 @@ function redraw() {
 			.style("fill", "none");
 
 		let curves = layout.curvePath(i.toString());
-		console.log("cur", curves);
+		//console.log("cur", curves);
 		var curveString = "M" + curves[0].from.toString();
 		for (let i = 0; i < curves.length; i++) {
 			curveString += (" C" + curves[i].toString());
