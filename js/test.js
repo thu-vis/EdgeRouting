@@ -37,7 +37,13 @@ var obstacles = [
 	]
 ];
 
-let layout = WJL.createLayout();
+var polygonId = 0;
+var endPointId = 0;
+var pathId = 0;
+
+var layoutUpper = WJL.createLayout();
+var layoutLower = WJL.createLayout();
+var layoutFake = WJL.createLayout();
 
 var upperSvg = d3.select("#original");
 var lowerSvg = d3.select("#routing");
@@ -75,72 +81,109 @@ var dragBehavior = d3.behavior.drag()
 					 .on("dragend", dragHandler["dragend"]);
 upperSvg.call(dragBehavior);
 
-function redraw() {
-	//console.log(obstacles);
-	for (let polygon of obstacles) {
-		let pathString = "M ";
-		for (let vertex of polygon) {
-			pathString += (vertex[0] + "," + vertex[1] + " ");
-		}
-		upperSvg.append("path")
-			.attr("d", pathString)
-			.style("fill", "steelblue");
-		lowerSvg.append("path")
-			.attr("d", pathString)
-			.style("fill", "steelblue");
-	}
+var redrawPolygons = function(svg, layout) {
+	var polygonElements = svg.selectAll("path[class=polygon]");
+	var polygonUpdate = polygonElements.data(obstacles);
+	var polygonEnter = polygonUpdate.enter();
+	var polygonExit = polygonUpdate.exit();
 
-	for (let path of pathes) {
-		let attrFrom = {
-			"r": 5,
-			"cx": path[0][0],
-			"cy": path[0][1],
-			"fill": "black",
-		};
-		let attrTo = {
-			"r": 5,
-			"cx": path[1][0],
-			"cy": path[1][1],
-			"fill": "black",
-		}
-		upperSvg.append("circle").attr(attrFrom);
-		lowerSvg.append("circle").attr(attrFrom);
-		upperSvg.append("circle").attr(attrTo);
-		lowerSvg.append("circle").attr(attrTo);
-	}
-
-	for (let i = 0; i < obstacles.length; i++) {
-		layout.addPolygonObstacle(obstacles[i], i.toString());
-	}
-	for (let i = 0; i < pathes.length; i++) {
-		let path = pathes[i];
-		layout.addPathEndpoint([path[0][0], path[0][1]], (2 * i).toString());
-		layout.addPathEndpoint([path[1][0], path[1][1]], (2 * i + 1).toString());
-		layout.addPath((2 * i).toString(), (2 * i + 1).toString(), i.toString());
-	};
-	layout.build();
-	for (let i = 0; i < pathes.length; i++) {
-		let result = layout.polylinePath(i.toString());
-		let pathString = "M" + result[0].toString();
-		for (let i = 1; i < result.length; i++) {
-			pathString += (" L" + result[i].toString());
-		}
-		upperSvg.append("path")
-			.attr("d", pathString)
-			.style("stroke", "red")
-			.style("fill", "none");
-
-		let curves = layout.curvePath(i.toString());
-		//console.log("cur", curves);
-		var curveString = "M" + curves[0].from.toString();
-		for (let i = 0; i < curves.length; i++) {
-			curveString += (" C" + curves[i].toString());
-		}
-
-		lowerSvg.append("path")
-			.attr("d", curveString)
-			.style("stroke", "red")
-			.style("fill", "none");
-	}
+	var enterPolygonElements = polygonEnter.append("path")
+		.attr("class", "polygon")
+		.attr("d", function(data){
+			let pathString = "M ";
+			for(let vertex of data) {
+				pathString += (vertex[0] + "," + vertex[1] + " ");
+			}
+			return pathString;
+		})
+		.style("fill", "steelblue");
+	//console.log(polygonEnter.each, polygonUpdate.each, enterPolygonElements.each);
+	enterPolygonElements.each(function(data){
+		layout.addPolygonObstacle(data, polygonId.toString());
+		polygonId += 1;
+	});
 }
+
+var redrawPathes = function(svg, layout, isCurved = true) {
+	var pathElements = svg.selectAll("path[class=path]");
+	var pathUpdate = pathElements.data(pathes);
+	var pathEnter = pathUpdate.enter();
+	var pathExit = pathUpdate.exit();
+
+	var enterPathElements = pathEnter.append("circle")
+		.attr("class", "path")
+		.attr({
+			"r": 5,
+			"cx": function(data){
+				return data[0][0];
+			},
+			"cy": function(data){
+				return data[0][1];
+			},
+		})
+		.style("fill", "black");
+	pathEnter.append("circle")
+		.attr("class", "path")
+		.attr({
+			"r": 5,
+			"cx": function(data){
+				return data[1][0];
+			},
+			"cy": function(data){
+				return data[1][1];
+			},
+		})
+		.style("fill", "black");
+
+	enterPathElements.each(function(data){
+		layout.addPathEndpoint([data[0][0], data[0][1]], endPointId.toString());
+		endPointId += 1;
+		layout.addPathEndpoint([data[1][0], data[1][1]], endPointId.toString());
+		endPointId += 1;
+		layout.addPath((endPointId - 2).toString(), (endPointId - 1).toString(), pathId.toString());
+		this.id = pathId.toString();
+		pathId += 1;
+	});
+	layout.build();
+	enterPathElements.each(function(data){
+		if(isCurved) {
+			//return;
+			let curves = layout.curvePath(this.id);
+			let curveString = "M" + curves[0].from.toString();
+			//console.log(curves);
+			for(let i = 0; i < curves.length; i++) {
+				curveString += (" C" + curves[i].toString());
+			}
+
+			svg.append("path")
+				.attr("d", curveString)
+				.style({
+					"fill": "none",
+					"stroke": "green",
+				});
+		}
+		else{
+			let points = layout.polylinePath(this.id);
+			let pathString = "M" + points[0].toString();
+			for(let i = 1; i < points.length; i++) {
+				pathString += (" L" + points[i].toString());
+			}
+			svg.append("path")
+				.attr("d", pathString)
+				.style({
+					"fill" : "none",
+					"stroke": "green",
+				});
+		}
+	});
+}
+
+var redraw = function(){
+	redrawPolygons(upperSvg, layoutUpper);
+	redrawPolygons(lowerSvg, layoutLower);
+	redrawPathes(lowerSvg, layoutLower, true);
+	redrawPathes(upperSvg, layoutUpper, false);
+	
+}
+
 redraw();

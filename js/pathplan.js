@@ -387,44 +387,7 @@
 		}
 		return ret;
 	}
-	// naive version. only works for convex polygons.
 	function segment_and_polygon(segment, vertex) {
-		/*
-		var hasColinear = false;
-		var pointSum = vertex.length;
-		for (let i = 0; i < pointSum; i++) {
-			let p1 = vertex[i];
-			let p2 = vertex[(i + 1) % pointSum];
-			let p3 = vertex[(i - 1 + pointSum) % pointSum];
-
-			let edge = new Segment(p1, p2);
-			let relation = segments_relationship(edge, segment);
-			if (relation === 'proper_intersected') {
-				return 'cross';
-			} else if (relation === 'colinear') {
-				hasColinear = true;
-			}
-
-			if (point_on_segment(p1, segment, true)) {
-				let v1 = p2.sub(p1);
-				let v2 = p3.sub(p1);
-				let v0 = segment.toVector();
-
-				if (less_than(v0.cross(v1) * v0.cross(v2), 0)) {
-					return 'cross';
-				}
-			}
-		}
-		if (hasColinear) {
-			return 'outside';
-		}
-
-		if (['on', 'inside'].indexOf(point_and_polygon(segment.from, vertex)) > -1) {
-			if (['on', 'inside'].indexOf(point_and_polygon(segment.to, vertex)) > -1) {
-				return 'inside';
-			}
-		}
-		return 'outside';*/
 		var pointSum = vertex.length;
 		var intersections = [];
 		for (let i = 0; i < pointSum; i++) {
@@ -794,6 +757,10 @@
 				for (let j = i + 1; j < this.points.length; j++) {
 					let p2 = this.points[j];
 
+					if(p1['belong'] === 'path' && p2['belong'] === 'path'){
+						continue;
+					}
+
 					let segment = new Segment(p1, p2);
 					let flag = this.polygons.some(function(polygon) {
 						if(p1['belong'] === 'path') {
@@ -840,7 +807,6 @@
 				}
 			}
 			var epsilon = 10;
-
 			for (let i = 1; i < result.length - 1; i++) {
 				if (result[i]['through'].length <= 1)
 					continue;
@@ -867,13 +833,15 @@
 					}
 				}
 			}
+			//console.log(result);
 			return result;
 		}
 
-		curvePath(id) {
-			//var path = this.pathMap.get(id);
-			var polylinePath = this.polylinePath(id, false);
+		curvePath(id, real = true) {
+			var polylinePath = this.polylinePath(id, real);
 			var curves = route_spline(this.polygons, new Polyline(polylinePath));
+			console.log(polylinePath);
+			console.log(curves);
 			return curves;
 		}
 	}
@@ -882,5 +850,3 @@
 		return new VisibilityGraph();
 	}
 })();
-
-//WJL.redraw();
