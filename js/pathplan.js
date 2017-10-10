@@ -501,6 +501,16 @@
 				alphas);
 
 			var intersected = polygons.some(function(x) {
+				if(curve.points[0].belong === 'path') {
+					let relation = point_and_polygon(curve.points[0], x);
+					if(relation !== 'outside')
+						return false;
+				}
+				if(curve.points[3].belong === 'path') {
+					let relation = point_and_polygon(curve.points[3], x);
+					if(relation !== 'outside')
+						return false;
+				}
 				return ["inside", "cross"].indexOf(curve_and_polygon(curve, x)) > -1;
 			});
 
@@ -806,7 +816,7 @@
 					}
 				}
 			}
-			var epsilon = 10;
+			var epsilon = 20;
 			for (let i = 1; i < result.length - 1; i++) {
 				if (result[i]['through'].length <= 1)
 					continue;
