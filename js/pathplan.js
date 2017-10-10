@@ -83,7 +83,7 @@
 		if (less_than(ret.dot(A), 0)) {
 			ret = ret.reverse();
 		}
-		return ret;
+		return ret.normalize();
 	}
 
 	function euclid_distance(A, B) {
@@ -816,7 +816,7 @@
 					}
 				}
 			}
-			var epsilon = 20;
+			var epsilon = 10;
 			for (let i = 1; i < result.length - 1; i++) {
 				if (result[i]['through'].length <= 1)
 					continue;
@@ -837,6 +837,7 @@
 
 						let nScale = Math.min(result[i]['through'].length - 1, 4);
 						let adjust = p0.add(bi.scale(epsilon * nScale));
+						console.log(nScale, adjust, p0);
 
 						result.splice(i, 1, adjust);
 						break;
