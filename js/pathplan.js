@@ -219,33 +219,37 @@
 		return proper ? less_than(dot, 0) : less_or_equal(dot, 0);
 	}
 
-	function segments_relationship(AB, CD) {
+	function segments_intersected(AB, CD) {
+		if(less_than(Math.max(AB.from.x, AB.to.x), Math.min(CD.from.x, CD.to.x)))
+			return false;
+		if(less_than(Math.max(CD.from.x, CD.to.x), Math.min(AB.from.x, AB.to.x)))
+			return false;
+		if(less_than(Math.max(AB.from.y, AB.to.y), Math.min(CD.from.y, CD.to.y)))
+			return false;
+		if(less_than(Math.max(CD.from.y, CD.to.y), Math.min(AB.from.y, AB.to.y)))
+			return false;
+
 		var ab = AB.toVector();
 		var cd = CD.toVector();
 		var ac = CD.from.sub(AB.from);
 		var bc = CD.from.sub(AB.to);
-		if (equal(ab.cross(cd), 0)) {
-			return equal(ac.cross(bc), 0) ? 'colinear' : 'parallel';
-		}
 		var ad = CD.to.sub(AB.from);
 
 		var cross1 = ac.cross(ab) * ad.cross(ab);
 		if (less_or_equal(cross1, 0)) {
 			var cross2 = ac.cross(cd) * bc.cross(cd);
 			if (less_or_equal(cross2, 0)) {
-				let flag = (equal(cross1, 0) || equal(cross2, 0));
-				return flag ? 'intersected_on_endpoint' : 'proper_intersected';
+				return true;
+				//let flag = (equal(cross1, 0) || equal(cross2, 0));
+				//return flag ? 'intersected_on_endpoint' : 'proper_intersected';
 			}
-			return 'disjoint';
-		} else {
-			return 'disjoint';
 		}
+		return false
 	}
 
 	function segments_intersection_point(AB, CD) {
-		let relation = segments_relationship(AB, CD);
-		if(relation !== "intersected_on_endpoint" 
-			&& relation !== "proper_intersected") {
+		let relation = segments_intersected(AB, CD);
+		if(relation === false) {
 			return null;
 		}
 		var x1 = AB.from.x,
@@ -264,30 +268,6 @@
 		var d2 = b2 * (y2 - y1) - b1 * (y4 - y3);
 
 		return new Vector(d1 / d, d2 / d);
-	}
-
-	function segment_and_triangle(segment, vertex) {
-		var edges = [
-			new Segment(vertex[0], vertex[1]),
-			new Segment(vertex[1], vertex[2]),
-			new Segment(vertex[2], vertex[0]),
-		];
-		for (let edge of edges) {
-			let relation = segments_relationship(edge, segment);
-			if (relation === 'colinear')
-				return 'outside';
-			if (relation === 'proper_intersected')
-				return 'cross';
-		}
-		var relation1 = point_and_polygon(segment.from);
-		var relation2 = point_and_polygon(segment.to);
-		if (relation1 === 'outside') {
-			return relation2 === 'inside' ? 'cross' : 'outside';
-		} else if (relation1 === 'inside') {
-			return relation2 === 'outside' ? 'cross' : 'inside';
-		} else {
-			return relation2;
-		}
 	}
 
 	function point_and_polygon(point, vertex, flag = false) {
@@ -658,6 +638,11 @@
 				let temp = Infinity;
 				let choice = null;
 				for (let point of this.points) {
+					if(point['belong'] === 'path') {
+						if(point !== from && point !== to){
+							continue;
+						}
+					}
 					if (!point.visited && point.shortest < temp) {
 						temp = point.shortest;
 						choice = point;
@@ -668,6 +653,11 @@
 				}
 				choice.visited = true;
 				for (let edge = choice.head; edge; edge = edge.next) {
+					if(edge.to['belong'] === 'path') {
+						if(edge.to !== from && edge.to !== to){
+							continue;
+						}
+					}
 					edge.to.shortest = Math.min(edge.to.shortest,
 						choice.shortest + edge.v);
 				}
@@ -761,6 +751,7 @@
 			this.edges = [];
 			for(let point of this.points) {
 				point.head = undefined;
+				point.through = [];
 			}
 			for (let i = 0; i < this.points.length; i++) {
 				let p1 = this.points[i];
@@ -837,7 +828,7 @@
 
 						let nScale = Math.min(result[i]['through'].length - 1, 4);
 						let adjust = p0.add(bi.scale(epsilon * nScale));
-						console.log(nScale, adjust, p0);
+						//console.log(nScale, adjust, p0);
 
 						result.splice(i, 1, adjust);
 						break;
@@ -851,8 +842,8 @@
 		curvePath(id, real = true) {
 			var polylinePath = this.polylinePath(id, real);
 			var curves = route_spline(this.polygons, new Polyline(polylinePath));
-			console.log(polylinePath);
-			console.log(curves);
+			//console.log(polylinePath);
+			//console.log(curves);
 			return curves;
 		}
 	}

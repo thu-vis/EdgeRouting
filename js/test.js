@@ -34,8 +34,47 @@ var obstacles = [
 		[45, 80],
 		[75, 80],
 		[90, 60],
+	],
+	[
+		[165, 13],
+		[183, 13],
+		[183, 52],
+		[165, 52],
+	],
+	[
+		[89, 73],
+		[93, 73],
+		[93, 84],
+		[89, 84],
+	],
+	[
+		[95, 81],
+		[105, 81],
+		[105, 109],
+		[95, 109],
+	],
+	[
+		[66, 7],
+		[85, 7],
+		[85, 38],
+		[66, 38],
+	],
+	[
+		[269, 63],
+		[273, 63],
+		[273, 91],
+		[269, 91],
+
+	],
+	[
+		[101, 4],
+		[119, 4],
+		[119, 23],
+		[101, 23],
 	]
 ];
+var previousObstaclesLength = 0;
+var previousPathesLength = 0;
 
 var polygonId = 0;
 var endPointId = 0;
@@ -43,7 +82,6 @@ var pathId = 0;
 
 var layoutUpper = WJL.createLayout();
 var layoutLower = WJL.createLayout();
-var layoutFake = WJL.createLayout();
 
 var upperSvg = d3.select("#original");
 var lowerSvg = d3.select("#routing");
@@ -58,7 +96,6 @@ var dragHandler = (function(){
 		dy += d3.event.dy;
 	};
 	var dragEnd = function(d) {
-		//console.log("end!", d3.event.x, d3.event.y, dx, dy);
 		var result = (dx**2 + dy**2 >= 100);
 		if(result) {
 			var removedPathes = d3.selectAll("path");
@@ -83,7 +120,8 @@ upperSvg.call(dragBehavior);
 
 var redrawPolygons = function(svg, layout) {
 	var polygonElements = svg.selectAll("path[class=polygon]");
-	var polygonUpdate = polygonElements.data(obstacles);
+	console.log(polygonElements);
+	var polygonUpdate = polygonElements.data(obstacles, x=>x);
 	var polygonEnter = polygonUpdate.enter();
 	var polygonExit = polygonUpdate.exit();
 
@@ -97,11 +135,10 @@ var redrawPolygons = function(svg, layout) {
 			return pathString;
 		})
 		.style("fill", "steelblue");
-	//console.log(polygonEnter.each, polygonUpdate.each, enterPolygonElements.each);
-	enterPolygonElements.each(function(data){
-		layout.addPolygonObstacle(data, polygonId.toString());
-		polygonId += 1;
-	});
+
+	for(let i = previousObstaclesLength; i < obstacles.length; i++){
+		layout.addPolygonObstacle(obstacles[i], i.toString());
+	}
 }
 
 var redrawPathes = function(svg, layout, isCurved = true) {
@@ -135,20 +172,20 @@ var redrawPathes = function(svg, layout, isCurved = true) {
 		})
 		.style("fill", "black");
 
-	enterPathElements.each(function(data){
+	for (let i = previousPathesLength; i < pathes.length; i++){
+		let data = pathes[i];
 		layout.addPathEndpoint([data[0][0], data[0][1]], endPointId.toString());
 		endPointId += 1;
 		layout.addPathEndpoint([data[1][0], data[1][1]], endPointId.toString());
 		endPointId += 1;
-		layout.addPath((endPointId - 2).toString(), (endPointId - 1).toString(), pathId.toString());
-		this.id = pathId.toString();
-		pathId += 1;
-	});
+		layout.addPath((endPointId - 2).toString(), (endPointId - 1).toString(), i.toString());
+		data["id"] = i.toString();
+	};
 	layout.build();
 	enterPathElements.each(function(data){
 		if(isCurved) {
-			//return;
-			let curves = layout.curvePath(this.id);
+			console.log(data)
+			let curves = layout.curvePath(data.id);
 			let curveString = "M" + curves[0].from.toString();
 			//console.log(curves);
 			for(let i = 0; i < curves.length; i++) {
@@ -163,7 +200,7 @@ var redrawPathes = function(svg, layout, isCurved = true) {
 				});
 		}
 		else{
-			let points = layout.polylinePath(this.id);
+			let points = layout.polylinePath(data.id);
 			let pathString = "M" + points[0].toString();
 			for(let i = 1; i < points.length; i++) {
 				pathString += (" L" + points[i].toString());
@@ -183,7 +220,8 @@ var redraw = function(){
 	redrawPolygons(lowerSvg, layoutLower);
 	redrawPathes(lowerSvg, layoutLower, true);
 	redrawPathes(upperSvg, layoutUpper, false);
-	
+	previousPathesLength = pathes.length;
+	previousObstaclesLength = obstacles.length;
 }
 
 redraw();
