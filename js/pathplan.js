@@ -219,7 +219,7 @@
 		return proper ? less_than(dot, 0) : less_or_equal(dot, 0);
 	}
 
-	function segments_intersected(AB, CD) {
+	function segments_intersected(AB, CD, proper=false) {
 		if(less_than(Math.max(AB.from.x, AB.to.x), Math.min(CD.from.x, CD.to.x)))
 			return false;
 		if(less_than(Math.max(CD.from.x, CD.to.x), Math.min(AB.from.x, AB.to.x)))
@@ -239,9 +239,10 @@
 		if (less_or_equal(cross1, 0)) {
 			var cross2 = ac.cross(cd) * bc.cross(cd);
 			if (less_or_equal(cross2, 0)) {
-				return true;
-				//let flag = (equal(cross1, 0) || equal(cross2, 0));
-				//return flag ? 'intersected_on_endpoint' : 'proper_intersected';
+				if(proper === false)
+					return true;
+				let flag = (equal(cross1, 0) || equal(cross2, 0));
+				return !flag;
 			}
 		}
 		return false
@@ -369,6 +370,28 @@
 	}
 	function segment_and_polygon(segment, vertex) {
 		var pointSum = vertex.length;
+
+		for(let i = 0; i < pointSum; i++){
+			let p1 = vertex[i];
+			let p2 = vertex[(i + 1)%pointSum];
+			let p3 = vertex[(i - 1 + pointSum) % pointSum];
+			let seg = new Segment(p1, p2);
+			let relation = segments_intersected(seg, segment, true);
+			if(relation)
+				return true;
+
+			if (point_on_segment(p1, segment, true)) {
+				let v1 = p2.sub(p1);
+				let v2 = p3.sub(p1);
+ 				let v0 = segment.toVector();
+ 
+ 				if (less_than(v0.cross(v1) * v0.cross(v2), 0)) {
+ 					return 'cross';
+ 				}
+ 			}
+		}
+		return false;
+		// the following code provides correctness but very slow.
 		var intersections = [];
 		for (let i = 0; i < pointSum; i++) {
 			let p1 = vertex[i];
@@ -398,10 +421,10 @@
 			let p0 = new Vector((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
 
 			let relation = point_and_polygon(p0, vertex);
-			hasInside = hasInside || (relation === "inside");
-			hasOutside = hasOutside || (relation === "outside");
+			if(relation === "inside")
+				return true;
 		}
-		return hasInside ? (hasOutside ? "cross" : "inside") : "outside";
+		return false;;
 	}
 
 	function curve_and_polygon(curve, vertex) {
@@ -411,7 +434,7 @@
 			}
 		}
 
-		var nDivision = 50;
+		var nDivision = 20;
 		var hasInside = false,
 			hasOutside = false;
 		for (let i = 0; i < nDivision; i++) {
@@ -421,20 +444,10 @@
 			let p1 = curve.pointAt(t1);
 
 			let result = segment_and_polygon(new Segment(p0, p1), vertex);
-			if (result == 'cross')
-				return 'cross';
-			if (result == 'inside')
-				hasInside = true;
-			if (result == 'outside')
-				hasOutside = true;
+			if(result === true)
+				return true;
 		}
-
-		if (hasInside && hasOutside)
-			return 'cross';
-		else if (hasInside)
-			return 'inside';
-		else
-			return 'outside';
+		return false;
 	}
 
 	function guess_tnas(polylinePath) {
@@ -491,7 +504,9 @@
 					if(relation !== 'outside')
 						return false;
 				}
-				return ["inside", "cross"].indexOf(curve_and_polygon(curve, x)) > -1;
+				//console.log(curve_and_polygon(curve, x))
+				return curve_and_polygon(curve, x);
+				//return ["inside", "cross"].indexOf(curve_and_polygon(curve, x)) > -1;
 			});
 
 			if (!intersected) {
@@ -752,6 +767,15 @@
 			for(let point of this.points) {
 				point.head = undefined;
 				point.through = [];
+				point.in = [];
+
+				if(point['belong'] === 'path'){
+					for(let polygon of this.polygons){
+						let r = point_and_polygon(point, polygon);
+						if(r !== 'outside')
+							point.in.push(polygon);
+					}
+				}
 			}
 			for (let i = 0; i < this.points.length; i++) {
 				let p1 = this.points[i];
@@ -765,19 +789,16 @@
 					let segment = new Segment(p1, p2);
 					let flag = this.polygons.some(function(polygon) {
 						if(p1['belong'] === 'path') {
-							let tmp = point_and_polygon(p1, polygon);
-							if(tmp !== 'outside') {
+							if(p1['in'].indexOf(polygon) > -1)
 								return false;
-							}
 						}
 						if(p2['belong'] === 'path') {
-							let tmp = point_and_polygon(p2, polygon);
-							if(tmp !== 'outside') {
+							if(p2['in'].indexOf(polygon) >-1)
 								return false;
-							}
 						}
 						let relation = segment_and_polygon(segment, polygon);
-						return (relation === "inside" || relation === "cross");
+						return relation;
+						//return (relation === "inside" || relation === "cross");
 					});
 
 					if (!flag) {
@@ -787,7 +808,7 @@
 				}
 			}
 		}
-		polylinePath(id, real = true) {
+		polylinePath(id, real = true,  epsilon = 10) {
 			var path = this.pathMap.get(id);
 			var from = path.from,
 				to = path.to;
@@ -807,7 +828,6 @@
 					}
 				}
 			}
-			var epsilon = 10;
 			for (let i = 1; i < result.length - 1; i++) {
 				if (result[i]['through'].length <= 1)
 					continue;

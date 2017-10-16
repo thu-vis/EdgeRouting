@@ -10,7 +10,7 @@ var pathes = [
 		[300, 80],
 	],
 ];
-var obstacles = [
+var obstacles_ori = [
 	[
 		[170, 70],
 		[170, 140],
@@ -73,6 +73,12 @@ var obstacles = [
 		[101, 23],
 	]
 ];
+var obstacles = [];
+
+var nDuplicates = 1;
+for(let i = 0; i < nDuplicates; i++){
+	obstacles = obstacles.concat(obstacles_ori);
+}
 var previousObstaclesLength = 0;
 var previousPathesLength = 0;
 
@@ -120,7 +126,6 @@ upperSvg.call(dragBehavior);
 
 var redrawPolygons = function(svg, layout) {
 	var polygonElements = svg.selectAll("path[class=polygon]");
-	console.log(polygonElements);
 	var polygonUpdate = polygonElements.data(obstacles, x=>x);
 	var polygonEnter = polygonUpdate.enter();
 	var polygonExit = polygonUpdate.exit();
@@ -184,7 +189,6 @@ var redrawPathes = function(svg, layout, isCurved = true) {
 	layout.build();
 	enterPathElements.each(function(data){
 		if(isCurved) {
-			console.log(data)
 			let curves = layout.curvePath(data.id);
 			let curveString = "M" + curves[0].from.toString();
 			//console.log(curves);
