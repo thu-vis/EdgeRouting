@@ -100,37 +100,6 @@
 		return Math.sqrt((A.x - B.x) ** 2 + (A.y - B.y) ** 2);
 	}
 
-	function point_segment_distance(point, segment) {
-		let vector = segment.toVector();
-		if (equal(vector.isZero())) {
-			return euclid_distance(point, segment.from);
-		}
-		var per = new Vector(segment.from.y - segment.to.y,
-			segment.to.x - segment.from.x);
-		var v1 = point.sub(segment.from);
-		var v2 = point.sub(segment.to);
-
-		var cross = v1.cross(per) * v2.cross(per);
-		if (more_or_equal(cross, 0)) {
-			let dis1 = euclid_distance(point, segment.from);
-			let dis2 = euclid_distance(point, segment.to);
-			return Math.min(dis1, dis2);
-		} else {
-			let tmp = v1.cross(vector);
-			return Math.abs(tmp / vector.length);
-		}
-	}
-
-	function point_polygon_distance(point, vertex) {
-		var result = Infinity;
-		for (let i = 0; i < vertex.length; i++) {
-			let seg = new Segment(vertex[i], vertex[(i + 1) % vertex.length]);
-			let dis = point_segment_distance(point, seg);
-			result = Math.min(result, dis);
-		}
-		return dis;
-	}
-
 	class Polyline {
 		constructor(points) {
 			this.points = points;
