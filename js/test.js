@@ -86,8 +86,8 @@ var polygonId = 0;
 var endPointId = 0;
 var pathId = 0;
 
-var layoutUpper = WJL.createLayout();
-var layoutLower = WJL.createLayout();
+var layoutUpper = Pathplan.createLayout();
+var layoutLower = Pathplan.createLayout();
 
 var upperSvg = d3.select("#original");
 var lowerSvg = d3.select("#routing");

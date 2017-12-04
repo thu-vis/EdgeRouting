@@ -39,10 +39,10 @@
 		}
 		normalize() {
 			var length = Math.sqrt(this.x ** 2 + this.y ** 2);
-			if (Math.abs(length)) {
-				return new Vector(this.x / length, this.y / length);
+			if(equal(length, 0)){
+				throw RangeError("Zero vector cannot be normalized.");
 			}
-			return this;
+			return new Vector(this.x / length, this.y / length);
 		}
 		add(other) {
 			return new Vector(this.x + other.x, this.y + other.y);
@@ -64,9 +64,22 @@
 		}
 	}
 
+	class Segment {
+		constructor(from, to) {
+			this.from = from;
+			this.to = to;
+		}
+		toVector() {
+			return new Vector(this.to.x - this.from.x, this.to.y - this.from.y);
+		}
+		get length() {
+			return euclid_distance(this.from, this.to);
+		}
+	}
+
 	function bisector_between(A, B) {
 		if (A.isZero() || B.isZero()) {
-			throw new RangeError();
+			throw new RangeError("Zero vector not allowed.");
 		}
 		A = A.normalize();
 		B = B.normalize();
@@ -180,19 +193,6 @@
 			this.head = null;
 			this.shortest = Infinity;
 			this.visited = false;
-		}
-	}
-
-	class Segment {
-		constructor(from, to) {
-			this.from = from;
-			this.to = to;
-		}
-		toVector() {
-			return new Vector(this.to.x - this.from.x, this.to.y - this.from.y);
-		}
-		get length() {
-			return euclid_distance(this.from, this.to);
 		}
 	}
 
