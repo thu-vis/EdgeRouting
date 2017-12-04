@@ -715,7 +715,6 @@
 			var newPath = {
 				'from': from,
 				'to': to,
-				//'through': [],
 			}
 			this.pathes.push(newPath);
 			from['belong'] = 'path';
@@ -798,7 +797,6 @@
 						}
 						let relation = segment_and_polygon(segment, polygon);
 						return relation;
-						//return (relation === "inside" || relation === "cross");
 					});
 
 					if (!flag) {
@@ -848,27 +846,23 @@
 
 						let nScale = Math.min(result[i]['through'].length - 1, 4);
 						let adjust = p0.add(bi.scale(epsilon * nScale));
-						//console.log(nScale, adjust, p0);
 
 						result.splice(i, 1, adjust);
 						break;
 					}
 				}
 			}
-			//console.log(result);
 			return result;
 		}
 
 		curvePath(id, real = true) {
 			var polylinePath = this.polylinePath(id, real);
 			var curves = route_spline(this.polygons, new Polyline(polylinePath));
-			//console.log(polylinePath);
-			//console.log(curves);
 			return curves;
 		}
 	}
-	window.WJL = {};
-	window.WJL['createLayout'] = function() {
+	window.Pathplan = {};
+	window.Pathplan['createLayout'] = function() {
 		return new VisibilityGraph();
 	}
 })();
