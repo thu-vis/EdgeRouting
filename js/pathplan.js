@@ -13,17 +13,14 @@
 		switch (n) {
 			case 0:
 				return (1 - t) ** 3;
-				break;
 			case 1:
 				return 3 * t * ((1 - t) ** 2);
-				break;
 			case 2:
 				return 3 * (t ** 2) * (1 - t);
-				break;
 			case 3:
 				return t ** 3;
-				break;
 		}
+		throw RangeError();
 	}
 
 	class Vector {
