@@ -146,11 +146,11 @@
 			}
 			return new Vector(x, y);
 		}
+		// TODO: Modify this.
 		toString() {
 			var result = "";
 			for (let i = 1; i < 4; i++) {
-				result += this.points[i].toString();
-				result += ' ';
+				result += (this.points[i].toString() + ' ');
 			}
 			return result;
 		}
@@ -211,7 +211,7 @@
 				return !flag;
 			}
 		}
-		return false
+		return false;
 	}
 
 	function segments_intersection_point(AB, CD) {
@@ -237,7 +237,7 @@
 		return new Vector(d1 / d, d2 / d);
 	}
 
-	function point_and_polygon(point, vertex, flag = false) {
+	function point_and_polygon(point, vertex) {
 		var pointSum = vertex.length;
 		var nCrossings = 0;
 		var xs = [];
@@ -271,79 +271,19 @@
 			nCrossings += 1;
 			xs.push(x0);
 		}
-
-		if (flag) {
-			return xs;
-		} else {
-			return (nCrossings % 2 ? 'inside' : 'outside');
-		}
+		return (nCrossings % 2 ? 'inside' : 'outside');
 	}
 
-
-	function polygon_trianglulation(vertex, clockwise) {
-		if (clockwise === undefined)
-			clockwise = is_clockwise(vertex);
-
-		var ret = [];
-
-		var ears = [];
-		var isConvex = [];
-		var next = [];
-		var previous = [];
-		var pointSum = vertex.length;
-
-		function update(index) {
-			isConvex[index] = is_convex_point(vertex[index],
-				vertex[previous[index]],
-				vertex[next[index]],
-				clockwise);
-			if (isConvex[index] === true) {
-				let tri = [vertex[index], vertex[previous[index]], vertex[next[index]]];
-				let flag = true;
-				for (let j = 0; j < pointSum; j++) {
-					if (j === index || j === previous[index] || j === next[index])
-						continue;
-					if (point_and_polygon(vertex[j], tri) !== 'outside') {
-						flag = false;
-						break;
-					}
-				}
-				if (flag)
-					ears.push(index);
-			}
-		}
-
-		for (let i = 0; i < pointSum; i++) {
-			next[i] = (i + 1) % pointSum;
-			previous[i] = (i - 1 + pointSum) % pointSum;
-			update(i, clockwise);
-		}
-		var nPointsLeft = pointSum;
-		while (nPointsLeft > 2) {
-			let chosenEar = ears.pop();
-			ret.push([vertex[chosenEar], vertex[next[chosenEar]]], vertex[previous[chosenEar]]);
-			next[previous[chosenEar]] = next[chosenEar];
-			previous[next[chosenEar]] = previous[chosenEar];
-
-			for (let adj of[next[chosenEar], previous[chosenEar]]) {
-				if (!isConvex[adj]) {
-					update(adj, clockwise);
-				}
-			}
-			nPointsLeft -= 1;
-		}
-		return ret;
-	}
 	function segment_and_polygon(segment, vertex) {
 		var pointSum = vertex.length;
 
 		for(let i = 0; i < pointSum; i++){
 			let p1 = vertex[i];
-			let p2 = vertex[(i + 1)%pointSum];
+			let p2 = vertex[(i + 1) % pointSum];
 			let p3 = vertex[(i - 1 + pointSum) % pointSum];
 			let seg = new Segment(p1, p2);
-			let relation = segments_intersected(seg, segment, true);
-			if(relation)
+			let isCrossed = segments_intersected(seg, segment, true);
+			if(isCrossed)
 				return true;
 
 			if (point_on_segment(p1, segment, true)) {
@@ -352,12 +292,13 @@
  				let v0 = segment.toVector();
  
  				if (less_than(v0.cross(v1) * v0.cross(v2), 0)) {
- 					return 'cross';
+ 					return true;
  				}
  			}
 		}
 		return false;
 		// the following code provides correctness but very slow.
+		/*
 		var intersections = [];
 		for (let i = 0; i < pointSum; i++) {
 			let p1 = vertex[i];
@@ -390,7 +331,7 @@
 			if(relation === "inside")
 				return true;
 		}
-		return false;;
+		return false;*/
 	}
 
 	function curve_and_polygon(curve, vertex) {
@@ -590,7 +531,7 @@
 			this.points.push(newPoint);
 		}
 		addEdge(from, to, v) {
-			if (!v) {
+			if (v === undefined) {
 				v = Math.sqrt((from.x - to.x) ** 2 + (from.y - to.y) ** 2);
 			}
 			var newEdge = new AdjListEdge(from, to, v);

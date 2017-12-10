@@ -93,7 +93,11 @@ for (let i = 0; i < pathes.length; i++){
 layout.build();
 for(let i = 0; i < pathes.length; i++){
 	let curves = layout.curvePath(i.toString());
+	console.log(curves);
 }</pre>
+	<span>
+		Then we finally get the result. For example, in the case <code>i = 0</code>, we get an array of 3 <code>BezierCurve</code> objects, which means the best fitting consists of 3 Bézier curves. Each <code>BezierCurve</code> object has an property named <code>points</code>, which consists of 4 2-element arrays, representing the four control points of the curve.
+	</span>
 	</div>
 </body>
 </html>
